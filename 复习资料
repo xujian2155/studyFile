@@ -30,7 +30,7 @@ const { cookie， jsonp } = require("express/lib/response")；
     总结：DOMContentLoaded标志DOM树构建完成，但页面中部分资源可能还没有加载完；load标志着页面中所有的资源都已加载完成，包括图片，视频等资源
 
 
-4.Webpack/vite以及gulp等打包工具：
+4.Webpack/vite（基于rollup）、rollup（vue源码打包工具）以及gulp等打包工具（https://juejin.cn/post/7097493230572273700）：
     gulp更偏向将开发流程中让人痛苦或耗时的任务自动化，从而减少你所浪费的时间
     而webpack更侧重于模块化打包，也就是官网的那张图，将所有依赖的js，less，png等等打包为最终需要的模块.
 
@@ -45,9 +45,14 @@ const { cookie， jsonp } = require("express/lib/response")；
     为什么现在使用vite，不对文件进行打包：
         随着项目不断变大，启动和热更新所等待的时间越来越长
         HTTP/2.0多路并用
-        各大浏览器逐一支持ESM
+        各大浏览器逐一支持ESM，可以使用原生 ESM 和 原生 ESM 动态导入
         原生的解决了代码依赖和复用的问题
         越来越多的npm包拥抱ESM(尽管很多包的依赖并不是)
+
+    Rollup除了直接使用使用 ES6 模块之外，Rollup 还静态分析代码中的 import，并将排除任何未实际使用的代码。这实际上直接实现于现代码和现有工具和模块之上，而不会增加额外的依赖或使项目的大小膨胀。
+    rollup相对webpack更轻量，其构建的代码并不会像webpack一样被注入大量的webpack内部结构，而是尽量的精简保持代码原有的状态。它同样支持tree-shaking、依赖解析等能力，
+    不过rollup的生态并没有webpack工具强大，目前它仍然是一个小众的打包构建工具，他也可以与webpack或gulp整合形成混合打包构建的能力，在vue3的推出的时间节点，
+    下一代的打包构建工具vite横空出世，由于vite是基于rollup实现的打包构建能力，所以rollup才被更多的人认识和学习。
 
 
 5.CommonJS和es6模块的区别：
@@ -86,6 +91,18 @@ const { cookie， jsonp } = require("express/lib/response")；
             如果文件没有发生变化，则返回304状态码(响应头：Last-Modified，ETag)
 
         HTTP协议中的响应头部包含了控制缓存行为的各种指令和参数。这些头部字段包括Cache-Control、Expires、Last-Modified、ETag等
+
+        Last-Modified 资源的最后修改时间
+        Etag 资源的唯一标识
+        Cache-Control和Expires（早期使用）都是控制缓存的过期时间
+
+        强缓存 > 弱缓存   强缓存：cache-control > expires    弱缓存：ETag > Last-Modified
+
+
+10.协商缓存为什么要有两种呢：
+        有时候我们的网站是分布式部署在多台服务器上，一个资源文件可能在每台服务器上都有副本，相应地资源文件被修改时，新的文件要同步到各个服务器上，导致各个文件副本的修改时间不一定相同。
+        那么当用户一次访问请求的服务器和另一次访问请求的服务器不同时，就有可能因为两个文件副本的修改时间不同而使得Last-Modified形式的协商缓存失效。
+        如果这种情况采用Etag形式的协商缓存，根据文件内容而不是修改时间来判断缓存，就不会有这个问题了。
 
 
 2.Html5新特性：
@@ -297,7 +314,7 @@ const { cookie， jsonp } = require("express/lib/response")；
     mvvm：(model-view-viewmodel)有点类似mvp，但是model和view都可以影响到viewmodel层，view是带有主动性的，是一种双向的数据传递的模式。
 
 
-23.Vue组件通信：
+23.Vue组件通信传值：
     通过 props 传递
     $emit 触发自定义事件
     使用 ref
@@ -306,6 +323,7 @@ const { cookie， jsonp } = require("express/lib/response")；
     $parent
     Vuex/pinia
     vue-router(query,params)
+    插槽
     本地存储
 
 
@@ -441,6 +459,15 @@ const { cookie， jsonp } = require("express/lib/response")；
     从vue源码来看主要是做了三个动作：initInjections, initState, initProvide，我们主要关注的也是initstate，在这个方法里面，主要是为vm实例初始化了存放观察者的_watchers属性， 然后依次对props，methods，data，computed，watch属性进行了初始化与观察者的注册。
     
     
+23.内存泄漏：
+    1.1 不正当的闭包
+    1.2 隐式全局变量
+    1.3 游离DOM引用
+    1.4 定时器
+    1.5 事件监听器
+    1.6 Map、Set对象
+
+
 33.垃圾回收：
     标记清除：
         创建一个根对象，例如window对象；
@@ -830,19 +857,74 @@ const { cookie， jsonp } = require("express/lib/response")；
         使用数据传输加密（html展示数据和实际传输数据做特定加密）
         给 Cookie 设置合适的 SameSite来完全禁用第三方站点请求头携带 Cookie
 
-22.前端工程化：
-23.内存泄漏：
+
 24.浏览器兼容：
-25.常见的plugins：
-26.Pm2如何做进程管理：
-28.居中为什么不用margin：
-29.Dev-Server怎么跑起来：
-30.Koa2：
-31.粘包问题：
+    浏览器内核可以分为两个部分：js引擎、渲染引擎，所以兼容问题一般指css兼容和js兼容
+
+    不同浏览器css适配:
+        css预处理器：less，sass
+        normalize.css
+        reset.css
+        animate.css（动画处理）
+        postcss（css处理工具）：插件Autoprefixer、插件cssnext、
+        
+
+    早期版本浏览器语法适配：
+        babel polyfill
+
+    设备兼容:
+        rem
+        vw\vh
+        媒体查询
+        flex 布局
+
+
+29.webpack-dev-Server怎么跑起来：
+    当我们在命令行敲下npm run start，一般后面都是运行："start": "webpack serve --open"
+    这里webpack就会基于我们webpack.config.js里的配置创建一个compiler，然后基于compiler和devServer相关配置生成一个WepackDevServer实例，
+    该实例会启动一个express服务来帮我们监听静态资源变化并更新。
+    
+    最后总结一下，webpack-dev-server 可以作为命令行工具使用，核心模块依赖是 webpack 和 webpack-dev-middleware。
+    webapck-dev-server 负责启动一个 express 服务器监听客户端请求；实例化 webpack compiler；
+    启动负责推送 webpack 编译信息的 webscoket 服务器；负责向 bundle.js 注入和服务端通信用的 webscoket 客户端代码和处理逻辑。
+    webapck-dev-middleware 把 webpack compiler 的 outputFileSystem 改为 in-memory fileSystem；
+    启动 webpack watch 编译；处理浏览器发出的静态资源的请求，把 webpack 输出到内存的文件响应给浏览器。
+
+    每次 webpack 编译完成后向客户端广播 ok 消息，客户端收到信息后根据是否开启 hot 模式使用 liveReload 页面级刷新模式或者 hotReload 模块热替换。
+    hotReload 存在失败的情况，失败的情况下会降级使用页面级刷新。
+
+    开启 hot 模式，即启用 HMR 插件。
+    hot 模式会向服务器请求更新过后的模块，然后对模块的父模块进行回溯，对依赖路径进行判断，如果每条依赖路径都配置了模块更新后所需的业务处理回调函数则是 accepted 状态，否则就降级刷新页面。
+    判断 accepted 状态后对旧的缓存模块和父子依赖模块进行替换和删除，然后执行 accept 方法的回调函数，执行新模块代码，引入新模块，执行业务处理代码。
+
+
 32.304的过程：
-33.插槽：
-34：http缓存
-35.vue初始化做了什么
+    如果客户端是第一次向服务器发出请求，则服务器返回资源和相对应的资源标识给浏览器。该资源标识就是对当前所返回资源的一种唯一标识，可以是Etag或者是Last-Modified，
+    这两个字段将在图例结束后展开讲解。之后如果浏览器再次发送请求时，浏览器就会带上这个资源标识。此时，服务端就会通过这个资源标识，可以判断出浏览器的资源跟服务端此时的资源是否一致，
+    如果一致，则返回304，不一致则返回200、新资源还有新的协商缓存标记值。
+
+
+35.vue初始化做了什么：
+    主要是干了两件事，一是创建Vue实例，二是为实例初始化属性、事件、响应式数据：
+        vue初始化方法主要在vue文件的initMixin文件中，在这个文件中是vue的init初始化方法的具体内容，在init初始化中，初始化了vue生命周期，事件，render渲染，
+        触发beforeCreate钩子，注入初始化数据，初始化props,methods,data,computed,watch，触发created钩子，开始挂载到对应DOM元素。
+
+        1.选项合并，处理组件的配置内容，将传入的options与构造函数本身的options进行合并(用户选项和系统默认的选项进行合并)
+        2.初始化vue实例生命周期相关的属性，定义了比如：root、root、root、parent、children、children、children、refs
+        3.初始化自定义组件事件的监听,若存在父监听事件,则添加到该实例上
+        4.初始化render渲染所需的slots、渲染函数等。其实就两件事：插槽的处理 和 $createElm的声明
+        5.调用 beforeCreate 钩子函数，在这里就能看出一个组件在创建前和后分别做了哪些初始化
+        6.初始化注入数据，隔代传参时 先inject。作为一个组件，在要给后辈组件提供数据之前，需要先把祖辈传下来的数据注入进来
+        7.对props,methods,data,computed,watch进行初始化，包括响应式的处理
+        8.在把祖辈传下来的数据注入进来以后 再初始化provide
+            （上面三步其实是对数据和状态的初始化）
+        9.调用 created 钩子函数，初始化完成，可以执行挂载了
+        10.挂载到对应DOM元素上。如果组件构造函数设置了el选项，会自动挂载，所以就不用再手动调用$mount去挂载
+
+
+36.前端工程化
+37.
+
 
 
 
